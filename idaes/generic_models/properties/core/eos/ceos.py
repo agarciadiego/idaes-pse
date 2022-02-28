@@ -443,6 +443,8 @@ class Cubic(EoSBase):
             func_fw = func_fw_PR
         elif b._cubic_type == CubicType.SRK:
             func_fw = func_fw_SRK
+        elif b._cubic_type == CubicType.VDW:
+            func_fw = func_fw_VDW
         else:
             raise BurntToast(
                     "{} received unrecognized cubic type. This should "
@@ -935,11 +937,15 @@ def _log_fug_coeff_phase_comp(blk,p,j):
                                  delta[p, j], Z(p), pobj._cubic_type)
 
 def _log_fug_coeff_method(A, b, bm, B, delta, Z, cubic_type):
+
     u = EoS_param[cubic_type]['u']
     w = EoS_param[cubic_type]['w']
     p = sqrt(u**2 - 4*w)
 
-    return ((b/bm*(Z-1)*(B*p) - safe_log(Z-B, eps=eps_SL)*(B*p) +
+    if cubic_type == CubicType.VDW:
+        return (b/bm)*B/(Z-B) - safe_log(Z-B, eps=eps_SL) - (delta)*A/Z
+    else:
+        return ((b/bm*(Z-1)*(B*p) - safe_log(Z-B, eps=eps_SL)*(B*p) +
              A*(b/bm - delta)*safe_log((2*Z + B*(u + p))/(2*Z + B*(u - p)),
                                        eps=eps_SL)) /
             (B*p))
@@ -1071,6 +1077,8 @@ def func_fw_PR(cobj):
 def func_fw_SRK(cobj):
     return 0.48 + 1.574*cobj.omega - \
            0.176*cobj.omega**2
+def func_fw_VDW(cobj):
+    return 0.0
 
 def func_alpha_soave(T,fw,cobj):
     Tc = cobj.temperature_crit
